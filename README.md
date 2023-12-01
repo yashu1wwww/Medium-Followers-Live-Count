@@ -30,10 +30,6 @@ Start the application:
 
 node medium.js
 
-or
-
-npm start
-
 # Open your web browser and go to http://localhost:3000.
 
 Enter a correct Medium username in the provided form and click "Get Followers" to see the number of followers for that user.
