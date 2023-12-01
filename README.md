@@ -8,7 +8,7 @@ This is a simple web application built with Node.js and Express that fetches the
 
 Before running this application, 
 
-ensure that you have Node.js installed on your machine.
+ensure that you have Node.js and git bash installed on your machine.
 
 ## Installation
 
