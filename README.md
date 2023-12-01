@@ -1,6 +1,6 @@
-# -Medium-Followers-Live-Count
-Medium followers live count using a username created using JavaScript
+# Medium-Followers-Live-Count
 
+Medium followers live count using a username created using JavaScript
 
 # This is a simple web application built with Node.js and Express that fetches the number of followers for a given Medium username.
 
