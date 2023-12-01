@@ -2,6 +2,11 @@
 
 Medium followers live count using a username created using JavaScript
 
+![Alt text](images/1.png)
+![Alt text](images/2.png)
+![Alt text](images/3.png)
+![Alt text](images/4.png)
+
 This is a simple web application built with Node.js and Express that fetches the number of followers for a given Medium username.
 
 ## Prerequisites
