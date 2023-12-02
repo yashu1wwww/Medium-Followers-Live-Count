@@ -2,8 +2,6 @@
 
 Medium followers live count using a username created using JavaScript
 
-[![Medium Followers](https://img.shields.io/medium/followers/yashu_krish11?label=Followers&style=social)](https://medium.com/@yashu_krish11)
-
 ![Alt text](images/1.png)
 ![Alt text](images/2.png)
 ![Alt text](images/3.png)
