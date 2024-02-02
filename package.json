@@ -1,0 +1,14 @@
+{
+  "name": "medium-follower-app",
+  "version": "1.0.0",
+  "description": "A simple Medium followers app",
+  "main": "medium.js",
+  "scripts": {
+    "start": "node medium.js"
+  },
+  "dependencies": {
+    "express": "4.18.2",
+    "lodash": "4.17.21",
+    "request-promise": "4.2.6"
+  }
+}
