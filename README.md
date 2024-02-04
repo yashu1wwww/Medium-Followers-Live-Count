@@ -32,6 +32,9 @@ git clone https://github.com/your-username/medium-followers-web-app.git
 Install dependencies:
 
 npm install
+npm install express
+npm install lodash
+npm install request-promise
 
 ## Usage
 
