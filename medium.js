@@ -64,7 +64,7 @@ app.get('/', (req, res) => {
 
         .container {
           text-align: center;
-          background-color:HoneyDew;
+          background-color:#b3bac4;
           padding: 20px;
           border-radius: 10px;
         }
@@ -76,13 +76,13 @@ app.get('/', (req, res) => {
     </head>
     <body>
       <div class="container">
-        <h1>Enter Medium Username</h1>
+        <h2>MEDIUM FOLLOWERS COUNT</h2>
         <form action="/getFollowers" method="get">
           <div class="input-group mb-3">
-            <input type="text" name="username" class="form-control" required>
-            <button type="submit" class="btn btn-primary">Get Followers</button>
-          </div>
-        </form>
+    <input type="text" name="username" class="form-control" placeholder="Enter Medium Username Only..." required>
+    <button type="submit" class="btn btn-primary">SEARCH</button>
+</div>
+</form>
       </div>
     </body>
     </html>
@@ -138,7 +138,7 @@ app.get('/getFollowers', (req, res) => {
         <body>
           <div class="container">
             <h1 id="followersCount">${username}'s Followers: ${numFollowers}</h1>
-            <p><a href="/" class="btn btn-primary">Go Back</a></p>
+            <p><a href="/" class="btn btn-primary">Search Again</a></p>
           </div>
         </body>
         </html>
