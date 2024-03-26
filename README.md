@@ -45,6 +45,10 @@ Start the application:
 
 node medium.js
 
+# If you input incorrect text in the search box, the output will be as follows:
+
+Error: SyntaxError: Unexpected token < in JSON at position 0
+
 # Open your web browser and go to http://localhost:3000.
 
 # Enter a correct Medium username (not name) in the provided form, then click "Get Followers" to see the number of followers for that user. After searching for one username, you can change the username in the site title to view the followers count for another user.
