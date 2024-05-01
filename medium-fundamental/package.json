@@ -1,0 +1,17 @@
+{
+  "name": "medium-followers-live-count",
+  "version": "1.0.0",
+  "description": "A Node.js app to get Medium followers count live",
+  "main": "medium.js",
+  "scripts": {
+    "start": "node medium.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.17.1",
+    "lodash": "^4.17.21",
+    "request-promise": "^4.2.6"
+  }
+}
