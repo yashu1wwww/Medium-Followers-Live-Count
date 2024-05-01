@@ -4,7 +4,7 @@
   "description": "application to display Medium followers live count.",
   "main": "server.js",
   "scripts": {
-    "start": "node medium.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.17.2",
