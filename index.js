@@ -1,9 +1,9 @@
-import express from "express";
-import _ from 'lodash';
-import request from 'request-promise';
-
+const express = require('express');
 const app = express();
 const port = 3000;
+
+const _ = require('lodash');
+const request = require('request-promise');
 
 const JSON_HIJACKING_PREFIX = '])}while(1);</x>';
 
@@ -43,8 +43,11 @@ app.get('/', (req, res) => {
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Medium Followers Live Count</title>
-      <link rel="icon" href="https://cdn.iconscout.com/icon/free/png-256/free-medium-47-433328.png?f=webp" type="image/x-icon">
+<link rel="icon" href="https://cdn.iconscout.com/icon/free/png-256/free-medium-47-433328.png?f=webp" type="image/x-icon">
       <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+      	 
+     
+	
       <style>
         body {
           font-family: Arial, sans-serif;
@@ -76,10 +79,10 @@ app.get('/', (req, res) => {
         <h2>MEDIUM FOLLOWERS COUNT</h2>
         <form action="/getFollowers" method="get">
           <div class="input-group mb-3">
-            <input type="text" name="username" class="form-control" placeholder="Enter Medium Username Only..." required>
-            <button type="submit" class="btn btn-primary">SEARCH</button>
-          </div>
-        </form>
+    <input type="text" name="username" class="form-control" placeholder="Enter Medium Username Only..." required>
+    <button type="submit" class="btn btn-primary">SEARCH</button>
+</div>
+</form>
       </div>
     </body>
     </html>
@@ -88,10 +91,65 @@ app.get('/', (req, res) => {
 });
 
 app.get('/getFollowers', (req, res) => {
-  const username = req.query.username;
+  let username = req.query.username;
 
   if (!username) {
     res.send('Please provide a username.');
+    return;
+  }
+
+  if (username.startsWith('@')) {
+    username = username.substring(1);
+  }
+  if (!username.match(/^[a-zA-Z0-9-_]+$/)) {
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Error: Invalid Username</title>
+        <link rel="icon" href="https://cdn.iconscout.com/icon/free/png-256/free-medium-47-433328.png?f=webp" type="image/x-icon">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f8d7da;
+          }
+
+          .container {
+            text-align: center;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+          }
+
+          #errorMessage {
+            color: #721c24;
+            font-weight: bold;
+            margin-bottom: 20px;
+          }
+
+          #searchAgain {
+            margin-top: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1 id="errorMessage">Only correct Medium search results are acceptable, not even URLs</h1>
+          <p><a href="/" id="searchAgain" class="btn btn-primary">Search Again</a></p>
+        </div>
+      </body>
+      </html>
+    `;
+    res.send(html);
     return;
   }
 
@@ -143,7 +201,58 @@ app.get('/getFollowers', (req, res) => {
       res.send(html);
     })
     .catch((error) => {
-      res.status(500).send(`Error: ${error.message}`);
+      if (error.message.includes('No user found')) {
+        const html = `
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Error: Invalid Username</title>
+            <link rel="icon" href="https://cdn.iconscout.com/icon/free/png-256/free-medium-47-433328.png?f=webp" type="image/x-icon">
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                background-color: #000000;
+              }
+
+              .container {
+                text-align: center;
+                background-color: #fff;
+                padding: 20px;
+                border-radius: 10px;
+              }
+
+              #errorMessage {
+                color: #721c24;
+                font-weight: bold;
+                margin-bottom: 20px;
+              }
+
+              #searchAgain {
+                margin-top: 20px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1 id="errorMessage">Only Correct Username Accetable Not Even URL</h1>
+              <p><a href="/" id="searchAgain" class="btn btn-primary">Search Again</a></p>
+            </div>
+          </body>
+          </html>
+        `;
+        res.send(html);
+      } else {
+        res.status(500).send(`Error: ${error.message}`);
+      }
     });
 });
 
