@@ -1,6 +1,6 @@
 # Medium-Followers-Live-Count
 
-Medium real-time follower live count using a username, created using Express.js
+Medium real-time follower live count using a username
 
 # Search Here:
 
