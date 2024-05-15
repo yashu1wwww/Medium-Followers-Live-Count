@@ -1,4 +1,3 @@
-<!-- Copying the code is easy, but when you create it, you have to become busy -->
 const express = require('express');
 const app = express();
 const port = 3000;
