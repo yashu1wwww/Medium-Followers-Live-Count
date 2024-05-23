@@ -20,7 +20,19 @@ function extractFollowedByCount(profileData) {
   return _.get(profileData, `payload.references.SocialStats.${userId}.usersFollowedByCount`, 0);
 }
 
-function getFollowersForUser(username) {
+function extractJoinedDate(profileData) {
+  const joinedTimestamp = _.get(profileData, 'payload.user.createdAt');
+  if (joinedTimestamp) {
+    const joinedDate = new Date(joinedTimestamp);
+    if (!isNaN(joinedDate.getTime())) {
+      return joinedDate.toLocaleDateString();
+    }
+  }
+  return "Unknown";
+}
+
+
+function getFollowersAndJoinedDate(username) {
   const options = {
     uri: generateMediumProfileUri(username),
     transform: massageHijackedPreventionResponse,
@@ -29,11 +41,13 @@ function getFollowersForUser(username) {
   return request(options)
     .then((profileData) => {
       const numFollowers = extractFollowedByCount(profileData);
-      return Promise.resolve(numFollowers);
+      const joinedDate = extractJoinedDate(profileData);
+      return Promise.resolve({ numFollowers, joinedDate });
     });
 }
 
 app.use(express.static('public')); 
+
 app.get('/', (req, res) => {
   const html = `
     <!DOCTYPE html>
@@ -138,15 +152,14 @@ app.get('/getFollowers', (req, res) => {
   const username = req.query.username;
 
   if (!username) {
-    // Show a popup notification for missing username
     return res.send(`
       <script>alert('Please provide a username.')</script>
       <meta http-equiv="refresh" content="0; url=/">
     `);
   }
 
-  getFollowersForUser(username)
-    .then((numFollowers) => {
+  getFollowersAndJoinedDate(username)
+    .then(({ numFollowers, joinedDate }) => {
       const html = `
         <!DOCTYPE html>
         <html lang="en">
@@ -166,41 +179,41 @@ app.get('/getFollowers', (req, res) => {
               justify-content: center;
               height: 100vh;
               background-image: url('/background.jpg');
-              background-size: cover;
-              background-position: center;
-            }
+              background-size:
+cover;
+background-position: center;
+}
+        .container {
+          text-align: center;
+          background-color: rgba(255, 255, 255, 0.8);
+          padding: 20px;
+          border-radius: 10px;
+        }
 
-            .container {
-              text-align: center;
-              background-color: rgba(255, 255, 255, 0.8);
-              padding: 20px;
-              border-radius: 10px;
-            }
-
-            #followersCount {
-              color: #333;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1 id="followersCount">${username}'s Followers: ${numFollowers}</h1>
-            <p><a href="/" class="btn btn-primary">Search Again</a></p>
-          </div>
-        </body>
-        </html>
-      `;
-      res.send(html);
-    })
-    .catch((error) => {
-      // Show a popup notification for errors
-      res.send(`
-        <script>alert('Error: ${error.message}')</script>
-        <meta http-equiv="refresh" content="0; url=/">
-      `);
-    });
+        #followersCount {
+          color: #333;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1 id="followersCount">${username}'s Followers: ${numFollowers}</h1>
+        <p>Joined Date: ${joinedDate}</p>
+        <p><a href="/" class="btn btn-primary">Search Again</a></p>
+      </div>
+    </body>
+    </html>
+  `;
+  res.send(html);
+})
+.catch((error) => {
+  res.send(`
+    <script>alert('Error: ${error.message}')</script>
+    <meta http-equiv="refresh" content="0; url=/">
+  `);
 });
-
+});
 app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
+console.log(`Server is running at http://localhost:${port}`);
 });
+
