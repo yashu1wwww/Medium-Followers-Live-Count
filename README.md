@@ -1,6 +1,6 @@
 # Medium-Followers-Live-Count
 
-Medium real-time follower live count using a username
+Medium real-time follower live count  & joined date using a username
 
 # Search Here:
 
