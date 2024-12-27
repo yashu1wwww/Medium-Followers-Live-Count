@@ -1,10 +1,8 @@
 const express = require('express');
 const app = express();
 const port = 3000;
-
 const _ = require('lodash');
 const request = require('request-promise');
-const path = require('path');
 
 const JSON_HIJACKING_PREFIX = '])}while(1);</x>';
 
@@ -46,6 +44,8 @@ function getFollowersAndJoinedDate(username) {
     });
 }
 
+app.use(express.static('public'));
+
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -58,10 +58,13 @@ app.get('/', (req, res) => {
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
         <title>MEDIUM REALTIME FOLLOWERS COUNT TOOL</title>
         <style>
+            html, body {
+                overflow: hidden;
+            }
             * {
                 font-family: 'Libre Baskerville', serif;
                 margin: 0;
-                padding: 9;
+                padding: 0;
                 box-sizing: border-box;
             }
 
@@ -70,7 +73,7 @@ app.get('/', (req, res) => {
             }
 
             body {
-                background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('https://raw.githubusercontent.com/yashu1wwww/Sharechat-auto-login-likes-comment/refs/heads/main/1.jpg');
+                background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('https://rajaniraiyn.github.io/windows11/src/wallpaper/img28.webp');
                 background-repeat: no-repeat;
                 background-position: center;
                 background-size: cover;
@@ -159,13 +162,16 @@ app.get('/', (req, res) => {
             .result {
                 font-size: 1.9em;
                 margin: 10px 0;
-                color: #40ffcc;
+                color: #03040a00;
+                font-weight: bold;
+                text-shadow: 0px 1px 0px #a9b5ff, 0 0 10px #000000, 0 0 15px #EFEBE9;
+
                 text-align: center;
             }
 
             .error {
                 color: yellow;
-                font-size: 2.2em;
+                font-size: 1.9em;
                 margin-top: 20px;
                 text-align: center;
             }
@@ -178,6 +184,36 @@ app.get('/', (req, res) => {
                 font-family: 'Cinzel', serif;
                 font-weight: bold;
                 letter-spacing: 0.1em;
+            }
+
+            @media (max-width: 768px) {
+                .container {
+                    padding: 2rem;
+                }
+
+                .form-control {
+                    width: 100%;
+                    max-width: 100%;
+                }
+
+                .btn {
+                    padding: 0.6rem 1.4rem;
+                    font-size: 1.2rem;
+                }
+
+                .result, .error, .copyright {
+                    font-size: 1.2rem;
+                }
+            }
+
+            @media (max-width: 480px) {
+                .container > h1 {
+                    font-size: 1.2rem;
+                }
+
+                .form-control::placeholder {
+                    font-size: 1.4rem;
+                }
             }
         </style>
     </head>
@@ -246,7 +282,6 @@ app.get('/', (req, res) => {
     </html>
   `);
 });
-
 
 app.get('/getFollowers', (req, res) => {
   const username = req.query.username;
