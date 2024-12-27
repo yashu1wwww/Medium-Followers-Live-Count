@@ -1,7 +1,7 @@
 {
   "name": "medium-followers-live-count",
   "version": "1.0.0",
-  "description": "A simple Express.js application to fetch and display Medium user's followers count in real-time.",
+  "description": "Medium Realtime Followers Count Tool.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
