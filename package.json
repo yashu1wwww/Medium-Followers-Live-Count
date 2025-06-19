@@ -1,17 +1,28 @@
 {
-  "name": "medium-followers-live-count",
+  "name": "medium-realtime-followers-count-with-joined-date",
   "version": "1.0.0",
-  "description": "Medium Realtime Followers Count Tool.",
+  "description": "Medium Realtime Followers Count Tool",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
+  "keywords": [
+    "medium",
+    "followers",
+    "realtime",
+    "count",
+    "tool"
+  ],
+  "author": "Yashwanth R",
+  "license": "MIT",
   "dependencies": {
-    "express": "^4.17.1",
+    "express": "^4.18.2",
     "lodash": "^4.17.21",
+    "request": "^2.88.2",
     "request-promise": "^4.2.6"
   },
-  "engines": {
-    "node": ">=14.0.0"
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
