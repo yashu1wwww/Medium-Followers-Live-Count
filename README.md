@@ -1,6 +1,8 @@
-# Medium-Followers-Live-Count
+# Medium-Followers-Live-Count Tool
 
-Medium real-time follower live count  & joined date using a username
+A beautiful web app to fetch and display real-time Medium follower count and account creation date with smooth animations.
+
+Enter a Medium username to instantly see follower stats and membership details in a modern, responsive design.
 
 # Search Here:
 
