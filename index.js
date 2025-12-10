@@ -45,16 +45,16 @@ function getFollowersAndJoinedDate(username) {
     .catch((error) => {
       // Handle different types of errors with user-friendly messages
       if (error.statusCode === 404) {
-        throw new Error('Only Medium username is acceptable.');
+        throw new Error('Updating Soon.');
       }
       if (error.message && error.message.includes('No user found')) {
-        throw new Error('Only Medium username is acceptable.');
+        throw new Error('Updating Soon.');
       }
       if (error.message && error.message.includes('success\":false')) {
-        throw new Error('Only Medium username is acceptable.');
+        throw new Error('Updating Soon.');
       }
       // For any other error, show the same message
-      throw new Error('Only Medium username is acceptable.');
+      throw new Error('Updating Soon.');
     });
 }
 
@@ -662,3 +662,4 @@ app.get('/getFollowers', (req, res) => {
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
+
