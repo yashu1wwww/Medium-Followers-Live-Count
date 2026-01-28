@@ -1,11 +1,17 @@
 const express = require('express');
 const axios = require('axios');
 const app = express();
-const port = process.env.PORT || 3000;
 
-app.use(express.static('public'));
+// Helper: Extract follower count from raw HTML text
+function extractFollowersFromText(text) {
+  // Match patterns like "718 followers" anywhere in the text
+  const match = text.match(/(\d{1,3}(?:,\d{3})*)\s+followers/i);
+  if (match) {
+    return parseInt(match[1].replace(/,/g, ''), 10);
+  }
+  return null;
+}
 
-// ---------------- JSON API FETCHER (NO PUPPETEER) ----------------
 app.get('/getFollowers', async (req, res) => {
   const username = req.query.username?.trim();
 
@@ -13,39 +19,52 @@ app.get('/getFollowers', async (req, res) => {
     return res.status(400).json({ error: 'Invalid username format.' });
   }
 
+  // ✅ STRATEGY 1: Try Medium's JSON API (works for most users including Obama)
   try {
-    // ✅ CORRECT URL - NO EXTRA SPACES
-    const url = `https://medium.com/@${username}?format=json`;
-    
-    const response = await axios.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; MediumFollowerChecker/1.0)'
-      },
-      timeout: 10000
+    const jsonUrl = `https://medium.com/@${username}?format=json`;
+    const response = await axios.get(jsonUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 AppleWebKit/537.36' },
+      timeout: 8000
     });
 
-    // Remove Medium's anti-scraping prefix
     const cleanJson = response.data.replace('])}while(1);</x>', '');
     const data = JSON.parse(cleanJson);
+    const count = data.payload?.user?.socialStats?.followersCount;
 
-    const followersCount = data.payload?.user?.socialStats?.followersCount;
-
-    if (followersCount == null) {
-      return res.status(404).json({ error: 'Profile not found or private' });
+    if (count != null && count > 0) {
+      return res.json({ numFollowers: count });
     }
+  } catch (e) {
+    console.warn(`JSON method failed for ${username}:`, e.message);
+  }
 
-    res.json({ numFollowers: followersCount });
-  } catch (error) {
-    console.error('Error:', error.message);
-    if (error.response?.status === 404) {
-      res.status(404).json({ error: 'Profile not found' });
-    } else {
-      res.status(500).json({ error: 'Failed to fetch data' });
+  // ✅ STRATEGY 2: Fallback to HTML scraping (for Balaji-type profiles)
+  const urls = [
+    `https://${username}.medium.com/followers`,
+    `https://medium.com/@${username}/followers`
+  ];
+
+  for (const url of urls) {
+    try {
+      const response = await axios.get(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 AppleWebKit/537.36' },
+        timeout: 8000
+      });
+
+      const followers = extractFollowersFromText(response.data);
+      if (followers != null && followers > 0) {
+        return res.json({ numFollowers: followers });
+      }
+    } catch (e) {
+      console.warn(`HTML fetch failed for ${url}:`, e.message);
     }
   }
+
+  // If both strategies fail
+  res.status(404).json({ error: 'Profile not found or private' });
 });
 
-// ---------------- EMBEDDED UI ----------------
+// Serve UI
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -196,6 +215,5 @@ app.get('/', (req, res) => {
 `);
 });
 
-app.listen(port, () => {
-  console.log(`✅ Server running at http://localhost:${port}`);
-});
+// 👇 REQUIRED FOR VERCEL
+module.exports = app;
