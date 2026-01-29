@@ -73,7 +73,7 @@ app.get('/', (req, res) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/jpeg" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSaSpbfxZ0vrnsU6pkYbQARlgbwiMZD3hC2g&s">
-  <title>Medium Followers Tool</title>
+  <title>Medium Realtime Followers Tool</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -180,7 +180,7 @@ app.get('/', (req, res) => {
       const resultDiv = document.getElementById('result');
 
       if (!username || !/^[a-zA-Z0-9._-]+$/.test(username)) {
-        alert('Enter a valid Medium username (letters, numbers, . _ - only)');
+        alert('Enter a valid Medium username');
         return;
       }
 
@@ -218,6 +218,7 @@ app.get('/', (req, res) => {
 
 // 👇 REQUIRED FOR VERCEL
 module.exports = app;
+
 
 
 
