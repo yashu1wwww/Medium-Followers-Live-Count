@@ -1,13 +1,44 @@
 const express = require('express');
 const axios = require('axios');
-
 const app = express();
-app.use(express.urlencoded({ extended: true }));
 
-/* simple delay */
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+// Helper: Extract follower count from raw HTML text
+function extractFollowersFromText(text) {
+  // Match patterns like "718 followers" anywhere in the text
+  const match = text.match(/(\d{1,3}(?:,\d{3})*)\s+followers/i);
+  if (match) {
+    return parseInt(match[1].replace(/,/g, ''), 10);
+  }
+  return null;
+}
 
-async function getFollowers(username) {
+app.get('/getFollowers', async (req, res) => {
+  const username = req.query.username?.trim();
+
+  if (!username || !/^[a-zA-Z0-9._-]+$/.test(username)) {
+    return res.status(400).json({ error: 'Invalid username format.' });
+  }
+
+  // ✅ STRATEGY 1: Try Medium's JSON API (works for most users including Obama)
+  try {
+    const jsonUrl = `https://medium.com/@${username}?format=json`;
+    const response = await axios.get(jsonUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 AppleWebKit/537.36' },
+      timeout: 8000
+    });
+
+    const cleanJson = response.data.replace('])}while(1);</x>', '');
+    const data = JSON.parse(cleanJson);
+    const count = data.payload?.user?.socialStats?.followersCount;
+
+    if (count != null && count > 0) {
+      return res.json({ numFollowers: count });
+    }
+  } catch (e) {
+    console.warn(`JSON method failed for ${username}:`, e.message);
+  }
+
+  // ✅ STRATEGY 2: Fallback to HTML scraping (for Balaji-type profiles)
   const urls = [
     `https://${username}.medium.com/followers`,
     `https://medium.com/@${username}/followers`
@@ -15,454 +46,174 @@ async function getFollowers(username) {
 
   for (const url of urls) {
     try {
-      await sleep(1200); // important to avoid rate limits
-
-      const res = await axios.get(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 AppleWebKit/537.36'
-        },
-        timeout: 10000
+      const response = await axios.get(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 AppleWebKit/537.36' },
+        timeout: 8000
       });
 
-      const html = res.data;
-
-      const match = html.match(/<h2[^>]*>\s*([\d,]+)\s+followers\s*<\/h2>/i);
-
-      if (match) {
-        return parseInt(match[1].replace(/,/g, ''), 10);
+      const followers = extractFollowersFromText(response.data);
+      if (followers != null && followers > 0) {
+        return res.json({ numFollowers: followers });
       }
     } catch (e) {
-      continue;
+      console.warn(`HTML fetch failed for ${url}:`, e.message);
     }
   }
-  return null;
-}
 
-/* Serve homepage with embedded HTML/JS */
+  // If both strategies fail
+  res.status(404).json({ error: 'Enter Correct Username' });
+});
+
+// Serve UI
 app.get('/', (req, res) => {
   res.send(`
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Medium Realtime Followers Count</title>
-      <link rel="icon" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRtZmNJmVFzKn2sZmJyW547OrmP3UAFZ5m-mQ&s" type="image/png">
-      <style>
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medium Followers Tool</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: linear-gradient(135deg, #9d4edd 0%, #c77dff 50%, #9d4edd 100%);
+    }
+    .container {
+      width: 100%;
+      max-width: 500px;
+      padding: 20px;
+      z-index: 1;
+    }
+    .card {
+      background: rgba(93, 39, 126, 0.3);
+      backdrop-filter: blur(10px);
+      border-radius: 30px;
+      padding: 50px 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .logo {
+      width: 60px; height: 60px; background: #000; color: #fff;
+      border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-size: 28px; font-weight: bold;
+      margin: 0 auto 30px;
+    }
+    .title {
+      font-size: 25px; font-weight: 700; color: #fff;
+      letter-spacing: 1px; margin-bottom: 45px; line-height: 1.2;
+    }
+    .input-field {
+      width: 100%; padding: 16px 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff; font-size: 16px;
+      margin-bottom: 25px;
+      font-family: inherit;
+    }
+    .btn-primary {
+      width: 100%; padding: 16px;
+      background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 100%);
+      color: #fff; border: none; border-radius: 20px;
+      font-size: 16px; font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 20px rgba(255, 107, 157, 0.3);
+    }
+    .result {
+      margin-top: 30px; min-height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 38px; color: #fff; transition: all 0.3s ease;
+    }
+    .result.success { color: #6effa3; }
+    .result.error { color: #ff6b6b; }
+    .result.loading {
+      font-size: 16px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+    .footer {
+      margin-top: 40px; font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .author {
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    @media (max-width: 600px) {
+      .card { padding: 40px 25px; border-radius: 25px; }
+      .title { font-size: 24px; margin-bottom: 25px; }
+      .logo { width: 50px; height: 50px; font-size: 24px; }
+      .input-field, .btn-primary { padding: 14px 16px; font-size: 15px; }
+      .result b { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="logo">M</div>
+      <h3 class="title">MEDIUM REAL TIME FOLLOWERS TOOL</h3>
+      <input type="text" id="username" class="input-field" placeholder="Enter Medium Username Only" autocomplete="off">
+      <button class="btn-primary" onclick="check()">GET FOLLOWERS COUNT</button>
+      <div id="result" class="result"></div>
+      <footer class="footer">
+        Designed & Developed by <span class="author">Yashwanth R</span>
+      </footer>
+    </div>
+  </div>
 
-        body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          padding: 20px;
-          color: white;
-          position: relative;
-          overflow: hidden;
-        }
+  <script>
+    async function check() {
+      const username = document.getElementById('username').value.trim();
+      const resultDiv = document.getElementById('result');
 
-        .bubble {
-          position: absolute;
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.1);
-          animation: float 15s infinite ease-in-out;
-        }
+      if (!username || !/^[a-zA-Z0-9._-]+$/.test(username)) {
+        alert('Enter a valid Medium username (letters, numbers, . _ - only)');
+        return;
+      }
 
-        .bubble:nth-child(1) {
-          width: 80px;
-          height: 80px;
-          top: 10%;
-          left: 10%;
-          animation-delay: 0s;
-        }
+      resultDiv.className = 'result loading';
+      resultDiv.textContent = 'Loading...';
 
-        .bubble:nth-child(2) {
-          width: 120px;
-          height: 120px;
-          top: 20%;
-          right: 10%;
-          animation-delay: 2s;
-        }
+      try {
+        const response = await fetch('/getFollowers?username=' + encodeURIComponent(username));
+        const data = await response.json();
 
-        .bubble:nth-child(3) {
-          width: 60px;
-          height: 60px;
-          bottom: 20%;
-          left: 15%;
-          animation-delay: 4s;
-        }
-
-        .bubble:nth-child(4) {
-          width: 100px;
-          height: 100px;
-          bottom: 10%;
-          right: 20%;
-          animation-delay: 6s;
-        }
-
-        .bubble:nth-child(5) {
-          width: 70px;
-          height: 70px;
-          top: 50%;
-          left: 50%;
-          animation-delay: 3s;
-        }
-
-        .bubble:nth-child(6) {
-          width: 90px;
-          height: 90px;
-          top: 30%;
-          right: 30%;
-          animation-delay: 5s;
-        }
-
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0px) translateX(0px);
-          }
-          25% {
-            transform: translateY(-50px) translateX(30px);
-          }
-          50% {
-            transform: translateY(-80px) translateX(-30px);
-          }
-          75% {
-            transform: translateY(-40px) translateX(50px);
-          }
-        }
-
-        .content {
-          position: relative;
-          z-index: 10;
-          text-align: center;
-          max-width: 600px;
-          width: 100%;
-        }
-
-        .logo {
-          width: 100px;
-          height: 100px;
-          margin: 0 auto 30px;
-          border-radius: 20px;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-          animation: fadeIn 0.8s ease-out;
-        }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: scale(0.8);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        h1 {
-          font-size: 36px;
-          font-weight: 700;
-          margin-bottom: 40px;
-          letter-spacing: -0.5px;
-          text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        form {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          margin-bottom: 50px;
-        }
-
-        .input-group {
-          display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
-          justify-content: center;
-        }
-
-        input {
-          flex: 1;
-          min-width: 200px;
-          padding: 14px 18px;
-          border: 2px solid rgba(255, 255, 255, 0.3);
-          border-radius: 12px;
-          font-size: 16px;
-          font-family: inherit;
-          transition: all 0.3s ease;
-          background: rgba(255, 255, 255, 0.15);
-          color: white;
-          backdrop-filter: blur(10px);
-        }
-
-        input::placeholder {
-          color: rgba(255, 255, 255, 0.7);
-        }
-
-        input:focus {
-          outline: none;
-          border-color: rgba(255, 255, 255, 0.6);
-          background: rgba(255, 255, 255, 0.25);
-          box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.15);
-        }
-
-        button {
-          padding: 14px 32px;
-          background: rgba(255, 255, 255, 0.25);
-          color: white;
-          border: 2px solid rgba(255, 255, 255, 0.4);
-          border-radius: 12px;
-          font-size: 15px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          min-width: 120px;
-          backdrop-filter: blur(10px);
-        }
-
-        button:hover:not(:disabled) {
-          background: rgba(255, 255, 255, 0.35);
-          border-color: rgba(255, 255, 255, 0.6);
-          transform: translateY(-2px);
-          box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
-        }
-
-        button:active:not(:disabled) {
-          transform: translateY(0);
-        }
-
-        button:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        #result {
-          min-height: 50px;
-          padding: 18px;
-          border-radius: 12px;
-          font-size: 16px;
-          display: none;
-          animation: slideDown 0.4s ease-out;
-          backdrop-filter: blur(10px);
-          background: rgba(255, 255, 255, 0.15);
-          border: 2px solid rgba(255, 255, 255, 0.2);
-          margin-bottom: 30px;
-        }
-
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        #result.success {
-          background: rgba(34, 197, 94, 0.25);
-          color: #86efac;
-          border-color: rgba(34, 197, 94, 0.4);
-        }
-
-        #result.error {
-          background: rgba(220, 38, 38, 0.25);
-          color: #fca5a5;
-          border-color: rgba(220, 38, 38, 0.4);
-        }
-
-        .loading {
-          display: inline-block;
-          width: 18px;
-          height: 18px;
-          border: 3px solid rgba(255, 255, 255, 0.3);
-          border-top-color: white;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-          margin-right: 10px;
-          vertical-align: middle;
-        }
-
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        .username {
-          font-weight: 700;
-          color: #ffd700;
-        }
-
-        #result.success {
-          background: rgba(34, 197, 94, 0.25);
-          border-color: rgba(34, 197, 94, 0.4);
-          font-size: 72px !important;
-          font-weight: 700 !important;
-          padding: 40px 20px !important;
-          color: #86efac !important;
-          min-height: auto !important;
-          margin-bottom: 40px;
-        }
-
-        .footer {
-          position: relative;
-          z-index: 10;
-          text-align: center;
-          margin-top: 40px;
-          font-size: 13px;
-          color: rgba(255, 255, 255, 0.8);
-        }
-
-        .footer strong {
-          color: white;
-        }
-
-        @media (max-width: 640px) {
-          h1 {
-            font-size: 28px;
-            margin-bottom: 30px;
-          }
-
-          .logo {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 25px;
-          }
-
-          .input-group {
-            flex-direction: column;
-          }
-
-          input {
-            min-width: 100%;
-          }
-
-          button {
-            width: 100%;
-          }
-
-          .footer {
-            font-size: 12px;
-          }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-      <div class="bubble"></div>
-
-      <div class="content">
-        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRtZmNJmVFzKn2sZmJyW547OrmP3UAFZ5m-mQ&s" alt="Medium Logo" class="logo">
-        <h1>Medium Realtime Followers Count</h1>
-
-        <form id="followerForm">
-          <div class="input-group">
-            <input type="text" name="username" placeholder="Enter your Medium username" required autocomplete="off">
-            <button type="submit" id="searchBtn">Check</button>
-          </div>
-        </form>
-
-        <div id="result"></div>
-
-        <div class="footer">
-          Designed & Developed by <strong>Yashwanth R</strong>
-        </div>
-      </div>
-
-      <script>
-        document.getElementById('followerForm').addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const username = document.querySelector('input[name="username"]').value.trim();
-          const resultDiv = document.getElementById('result');
-          const searchBtn = document.getElementById('searchBtn');
-
+        if (response.ok) {
+          resultDiv.className = 'result success';
+          resultDiv.innerHTML = '<b>' + data.numFollowers.toLocaleString() + '</b>';
+        } else {
+          alert(data.error || 'Profile not found');
           resultDiv.textContent = '';
-          resultDiv.className = '';
-          resultDiv.style.display = 'block';
-          searchBtn.disabled = true;
+        }
+      } catch (error) {
+        alert('Network error. Try again.');
+        resultDiv.textContent = '';
+      }
+    }
 
-          resultDiv.innerHTML = '<div class="loading"></div> Checking followers for <span class="username">' +
-                               username + '</span>...';
-
-          try {
-            const formData = new URLSearchParams();
-            formData.append('username', username);
-
-            const response = await fetch('/followers', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-              },
-              body: formData
-            });
-
-            const htmlText = await response.text();
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = htmlText;
-
-            const resultElement = tempDiv.querySelector('h2');
-            if (resultElement) {
-              const text = resultElement.textContent.trim();
-              const isFailure = text.includes('Not available') || text.includes('not available');
-              resultDiv.className = isFailure ? 'error' : 'success';
-              resultDiv.textContent = text;
-            } else {
-              throw new Error('Unexpected response format');
-            }
-          } catch (error) {
-            resultDiv.className = 'error';
-            resultDiv.innerHTML = '⚠️ Error: Could not fetch followers. Please try again later.';
-            console.error('Fetch error:', error);
-          } finally {
-            searchBtn.disabled = false;
-          }
-        });
-
-        window.addEventListener('load', () => {
-          document.querySelector('input[name="username"]').focus();
-        });
-      </script>
-    </body>
-    </html>
-  `);
+    document.getElementById('username').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') check();
+    });
+    document.getElementById('username').addEventListener('focus', () => {
+      document.getElementById('result').textContent = '';
+    });
+  </script>
+</body>
+</html>
+`);
 });
 
-/* Handle form submission - UNCHANGED FROM ORIGINAL */
-app.post('/followers', async (req, res) => {
-  const username = req.body.username?.trim();
-  if (!username) {
-    return res.send('Please enter a Medium username!');
-  }
-
-  const followers = await getFollowers(username);
-
-  if (followers !== null) {
-    res.send(`
-      <h2>${followers.toLocaleString()}</h2>
-    `);
-  } else {
-    res.send(`
-      <h2>Not available</h2>
-    `);
-  }
-});
-
-/* Start server */
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+// 👇 REQUIRED FOR VERCEL
+module.exports = app;
