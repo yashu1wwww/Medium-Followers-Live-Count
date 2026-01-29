@@ -107,7 +107,7 @@ app.get('/', (req, res) => {
       margin: 0 auto 30px;
     }
     .title {
-      font-size: 25px; font-weight: 700; color: #fff;
+      font-size: 18px; font-weight: 700; color: #fff;
       letter-spacing: 1px; margin-bottom: 45px; line-height: 1.2;
     }
     .input-field {
@@ -218,5 +218,6 @@ app.get('/', (req, res) => {
 
 // 👇 REQUIRED FOR VERCEL
 module.exports = app;
+
 
 
