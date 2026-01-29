@@ -72,6 +72,7 @@ app.get('/', (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/jpeg" href="https://cdn.mos.cms.futurecdn.net/xJGh6cXvC69an86AdrLD98-737-80.jpg">
   <title>Medium Followers Tool</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -217,3 +218,4 @@ app.get('/', (req, res) => {
 
 // 👇 REQUIRED FOR VERCEL
 module.exports = app;
+
