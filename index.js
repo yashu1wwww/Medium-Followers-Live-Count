@@ -110,15 +110,36 @@ app.get('/', (req, res) => {
       font-size: 18px; font-weight: 700; color: #fff;
       letter-spacing: 1px; margin-bottom: 45px; line-height: 1.2;
     }
-    .input-field {
-      width: 100%; padding: 16px 20px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff; font-size: 16px;
-      margin-bottom: 25px;
-      font-family: inherit;
-    }
+  .input-field {
+  width: 100%;
+  padding: 16px 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 16px;
+  margin-bottom: 25px;
+  font-family: inherit;
+  outline: none;
+  transition: border 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Placeholder color */
+.input-field::placeholder {
+  color: rgba(255, 255, 255, 0.85);
+  opacity: 1;
+}
+
+/* Focus effect */
+.input-field:focus {
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.25);
+}
+
+/* Placeholder fade on focus */
+.input-field:focus::placeholder {
+  opacity: 0.4;
+}
     .btn-primary {
       width: 100%; padding: 16px;
       background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 100%);
@@ -218,6 +239,7 @@ app.get('/', (req, res) => {
 
 // 👇 REQUIRED FOR VERCEL
 module.exports = app;
+
 
 
 
