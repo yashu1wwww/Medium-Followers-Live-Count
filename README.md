@@ -8,7 +8,7 @@ Enter a Medium username to instantly see follower stats and membership details i
   <img src="https://raw.githubusercontent.com/yashu1wwww/Medium-Followers-Live-Count/refs/heads/main/medium.png" alt="Tool Screenshot" width="700">
 </p>
 
-# Followers Fetch Run on Localhost
+#Followers Fetch Run on Localhost
 
 # Search Here:
 
