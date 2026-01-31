@@ -4,6 +4,12 @@ A beautiful web app to fetch and display real-time Medium follower count and acc
 
 Enter a Medium username to instantly see follower stats and membership details in a modern, responsive design.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/yashu1wwww/Medium-Followers-Live-Count/refs/heads/main/medium.png" alt="Tool Screenshot" width="700">
+</p>
+
+# Followers Fetch Run on Localhost
+
 # Search Here:
 
 https://medium-followers-live-count.vercel.app
