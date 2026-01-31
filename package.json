@@ -1,23 +1,17 @@
 {
-  "name": "medium-followers-checker",
+  "name": "medium-followers-tool",
   "version": "1.0.0",
-  "description": "A simple tool to check Medium followers count using Express.js",
+  "description": "Check Medium followers in real time",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "node index.js",
+    "start": "node index.js"
   },
   "dependencies": {
     "express": "^4.18.2",
     "axios": "^1.6.0"
   },
-  "devDependencies": {
-    "nodemon": "^3.0.1"
-  },
   "engines": {
     "node": ">=18"
-  },
-  "keywords": ["medium", "followers", "scraper", "express"],
-  "author": "Yashwanth R.",
-  "license": "MIT"
+  }
 }
