@@ -233,10 +233,3 @@ app.get('/', (req, res) => {
 // 👇 REQUIRED FOR VERCEL
 module.exports = app;
 
-// 👇 For local development
-if (require.main === module) {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`✅ Server running at http://localhost:${PORT}`);
-  });
-}
