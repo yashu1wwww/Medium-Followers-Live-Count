@@ -4,7 +4,6 @@ const app = express();
 
 // Helper: Extract follower count from raw HTML text
 function extractFollowersFromText(text) {
-  // Match patterns like "718 followers" anywhere in the text
   const match = text.match(/(\d{1,3}(?:,\d{3})*)\s+followers/i);
   if (match) {
     return parseInt(match[1].replace(/,/g, ''), 10);
@@ -21,8 +20,7 @@ app.get('/getFollowers', async (req, res) => {
 
   // ✅ STRATEGY 1: Try Medium's JSON API
   try {
-    // ⚠️ Fixed: Removed extra spaces in URL
-    const jsonUrl = `https://medium.com/@${username}?format=json`;
+    const jsonUrl = `https://medium.com/@${username}?format=json`; // ← NO SPACES
     const response = await axios.get(jsonUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 AppleWebKit/537.36' },
       timeout: 8000
@@ -42,7 +40,7 @@ app.get('/getFollowers', async (req, res) => {
   // ✅ STRATEGY 2: Fallback to HTML scraping
   const urls = [
     `https://${username}.medium.com/followers`,
-    `https://medium.com/@${username}/followers` // ⚠️ Fixed: removed extra spaces
+    `https://medium.com/@${username}/followers` // ← NO SPACES
   ];
 
   for (const url of urls) {
@@ -61,7 +59,6 @@ app.get('/getFollowers', async (req, res) => {
     }
   }
 
-  // If both strategies fail
   res.status(404).json({ error: 'Enter Correct Username' });
 });
 
@@ -73,6 +70,7 @@ app.get('/', (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- ✅ FIXED: removed space in favicon URL -->
   <link rel="icon" type="image/jpeg" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSaSpbfxZ0vrnsU6pkYbQARlgbwiMZD3hC2g&s">
   <title>Medium Realtime Followers Tool</title>
   <style>
@@ -232,7 +230,7 @@ app.get('/', (req, res) => {
 `);
 });
 
-// 👇 For Vercel (required)
+// 👇 REQUIRED FOR VERCEL
 module.exports = app;
 
 // 👇 For local development
