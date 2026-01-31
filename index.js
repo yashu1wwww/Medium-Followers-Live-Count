@@ -59,7 +59,7 @@ app.get('/getFollowers', async (req, res) => {
     }
   }
 
-  res.status(404).json({ error: 'Enter Correct Username' });
+  res.status(404).json({ error: 'run on localhost check code on github' });
 });
 
 // Serve UI
@@ -240,3 +240,4 @@ if (require.main === module) {
     console.log(`✅ Server running at http://localhost:${PORT}`);
   });
 }
+
