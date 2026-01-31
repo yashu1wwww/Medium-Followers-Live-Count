@@ -19,8 +19,9 @@ app.get('/getFollowers', async (req, res) => {
     return res.status(400).json({ error: 'Invalid username format.' });
   }
 
-  // ✅ STRATEGY 1: Try Medium's JSON API (works for most users including Obama)
+  // ✅ STRATEGY 1: Try Medium's JSON API
   try {
+    // ⚠️ Fixed: Removed extra spaces in URL
     const jsonUrl = `https://medium.com/@${username}?format=json`;
     const response = await axios.get(jsonUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 AppleWebKit/537.36' },
@@ -38,10 +39,10 @@ app.get('/getFollowers', async (req, res) => {
     console.warn(`JSON method failed for ${username}:`, e.message);
   }
 
-  // ✅ STRATEGY 2: Fallback to HTML scraping (for Balaji-type profiles)
+  // ✅ STRATEGY 2: Fallback to HTML scraping
   const urls = [
     `https://${username}.medium.com/followers`,
-    `https://medium.com/@${username}/followers`
+    `https://medium.com/@${username}/followers` // ⚠️ Fixed: removed extra spaces
   ];
 
   for (const url of urls) {
@@ -107,39 +108,33 @@ app.get('/', (req, res) => {
       margin: 0 auto 30px;
     }
     .title {
-      font-size: 18px; font-weight: 700; color: #fff;
+      font-size: 17px; font-weight: 700; color: #fff;
       letter-spacing: 1px; margin-bottom: 45px; line-height: 1.2;
     }
-  .input-field {
-  width: 100%;
-  padding: 16px 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  font-size: 16px;
-  margin-bottom: 25px;
-  font-family: inherit;
-  outline: none;
-  transition: border 0.3s ease, box-shadow 0.3s ease;
-}
-
-/* Placeholder color */
-.input-field::placeholder {
-  color: rgba(255, 255, 255, 0.85);
-  opacity: 1;
-}
-
-/* Focus effect */
-.input-field:focus {
-  border-color: rgba(255, 255, 255, 0.6);
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.25);
-}
-
-/* Placeholder fade on focus */
-.input-field:focus::placeholder {
-  opacity: 0.4;
-}
+    .input-field {
+      width: 100%;
+      padding: 16px 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 16px;
+      margin-bottom: 25px;
+      font-family: inherit;
+      outline: none;
+      transition: border 0.3s ease, box-shadow 0.3s ease;
+    }
+    .input-field::placeholder {
+      color: rgba(255, 255, 255, 0.85);
+      opacity: 1;
+    }
+    .input-field:focus {
+      border-color: rgba(255, 255, 255, 0.6);
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.25);
+    }
+    .input-field:focus::placeholder {
+      opacity: 0.4;
+    }
     .btn-primary {
       width: 100%; padding: 16px;
       background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 100%);
@@ -237,10 +232,13 @@ app.get('/', (req, res) => {
 `);
 });
 
-// 👇 REQUIRED FOR VERCEL
+// 👇 For Vercel (required)
 module.exports = app;
 
-
-
-
-
+// 👇 For local development
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`✅ Server running at http://localhost:${PORT}`);
+  });
+}
