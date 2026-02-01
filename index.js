@@ -59,7 +59,7 @@ app.get('/getFollowers', async (req, res) => {
     }
   }
 
-  res.status(404).json({ error: 'Run on localhost check code on github' });
+  res.status(404).json({ error: 'Enter Correct username' });
 });
 
 // Serve UI
@@ -194,7 +194,7 @@ app.get('/', (req, res) => {
       const resultDiv = document.getElementById('result');
 
       if (!username || !/^[a-zA-Z0-9._-]+$/.test(username)) {
-        alert('Run on localhost check code on github');
+        alert('Enter Correct username');
         return;
       }
 
@@ -240,5 +240,6 @@ if (require.main === module) {
     console.log(`✅ Server running at http://localhost:${PORT}`);
   });
 }
+
 
 
