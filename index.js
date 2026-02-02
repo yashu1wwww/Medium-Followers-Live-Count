@@ -2,10 +2,13 @@ const express = require('express');
 const axios = require('axios');
 const app = express();
 
-// Trust proxy for Render
-app.set('trust proxy', true);
-
+// Helper: Extract follower count from raw HTML text
 function extractFollowersFromText(text) {
+  // Skip if it's Medium's known 404 page
+  if (text.includes('PAGE NOT FOUND') || text.includes('404')) {
+    return null;
+  }
+
   const match = text.match(/(\d{1,3}(?:,\d{3})*)\s+followers/i);
   if (match) {
     return parseInt(match[1].replace(/,/g, ''), 10);
@@ -17,10 +20,10 @@ app.get('/getFollowers', async (req, res) => {
   const username = req.query.username?.trim();
 
   if (!username || !/^[a-zA-Z0-9._-]+$/.test(username)) {
-    return res.status(400).json({ error: 'Invalid username format.' });
+    return res.status(400).json({ error: 'Invalid username format. Use letters, numbers, dots, underscores, or hyphens only.' });
   }
 
-  // ✅ STRATEGY 1: Medium JSON API (most reliable when it works)
+  // ✅ STRATEGY 1: Medium JSON API
   try {
     const jsonUrl = `https://medium.com/@${username}?format=json`; // ← NO SPACES!
     const response = await axios.get(jsonUrl, {
@@ -28,9 +31,7 @@ app.get('/getFollowers', async (req, res) => {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
+        'Cache-Control': 'no-cache',
       },
       timeout: 8000,
     });
@@ -43,14 +44,13 @@ app.get('/getFollowers', async (req, res) => {
       return res.json({ numFollowers: count });
     }
   } catch (e) {
-    console.warn(`JSON method failed for @${username}:`, e.message);
+    console.warn(`JSON API failed for @${username}:`, e.message);
   }
 
-  // ✅ STRATEGY 2: Try HTML pages (in order of likelihood)
+  // ✅ STRATEGY 2: HTML scraping (fallback)
   const urls = [
     `https://medium.com/@${username}/followers`,
     `https://${username}.medium.com/followers`,
-    // Optional: some users only exist under main domain
   ];
 
   for (const url of urls) {
@@ -63,11 +63,6 @@ app.get('/getFollowers', async (req, res) => {
         timeout: 8000,
       });
 
-      // Skip if it's the "PAGE NOT FOUND" page
-      if (response.data.includes('PAGE NOT FOUND') || response.data.includes('404')) {
-        continue;
-      }
-
       const followers = extractFollowersFromText(response.data);
       if (followers != null && followers >= 0) {
         return res.json({ numFollowers: followers });
@@ -77,10 +72,13 @@ app.get('/getFollowers', async (req, res) => {
     }
   }
 
-  return res.status(404).json({ error: 'Profile not found or private' });
+  // Final fallback: profile not found, private, or blocked
+  return res.status(404).json({
+    error: 'Profile not found, private, or blocked by Medium.'
+  });
 });
 
-// Serve UI
+// Serve frontend
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -226,11 +224,11 @@ app.get('/', (req, res) => {
           resultDiv.className = 'result success';
           resultDiv.innerHTML = '<b>' + data.numFollowers.toLocaleString() + '</b>';
         } else {
-          alert(data.error || 'Profile not found or private');
+          alert(data.error || 'Failed to fetch follower count.');
           resultDiv.textContent = '';
         }
       } catch (error) {
-        alert('Network error. Try again.');
+        alert('Network error. Please try again.');
         resultDiv.textContent = '';
       }
     }
@@ -247,7 +245,7 @@ app.get('/', (req, res) => {
 `);
 });
 
-// For Render deployment
+// Start server — compatible with Render
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
