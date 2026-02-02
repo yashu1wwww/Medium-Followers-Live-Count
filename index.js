@@ -2,7 +2,9 @@ const express = require('express');
 const axios = require('axios');
 const app = express();
 
-// Helper: Extract follower count from raw HTML text
+// Trust proxy for Render
+app.set('trust proxy', true);
+
 function extractFollowersFromText(text) {
   const match = text.match(/(\d{1,3}(?:,\d{3})*)\s+followers/i);
   if (match) {
@@ -18,40 +20,56 @@ app.get('/getFollowers', async (req, res) => {
     return res.status(400).json({ error: 'Invalid username format.' });
   }
 
-  // ✅ STRATEGY 1: Try Medium's JSON API
+  // ✅ STRATEGY 1: Medium JSON API (most reliable when it works)
   try {
-    const jsonUrl = `https://medium.com/@${username}?format=json`; // ← NO SPACES
+    const jsonUrl = `https://medium.com/@${username}?format=json`; // ← NO SPACES!
     const response = await axios.get(jsonUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 AppleWebKit/537.36' },
-      timeout: 8000
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+      },
+      timeout: 8000,
     });
 
     const cleanJson = response.data.replace('])}while(1);</x>', '');
     const data = JSON.parse(cleanJson);
     const count = data.payload?.user?.socialStats?.followersCount;
 
-    if (count != null && count > 0) {
+    if (typeof count === 'number' && count >= 0) {
       return res.json({ numFollowers: count });
     }
   } catch (e) {
-    console.warn(`JSON method failed for ${username}:`, e.message);
+    console.warn(`JSON method failed for @${username}:`, e.message);
   }
 
-  // ✅ STRATEGY 2: Fallback to HTML scraping
+  // ✅ STRATEGY 2: Try HTML pages (in order of likelihood)
   const urls = [
+    `https://medium.com/@${username}/followers`,
     `https://${username}.medium.com/followers`,
-    `https://medium.com/@${username}/followers` // ← NO SPACES
+    // Optional: some users only exist under main domain
   ];
 
   for (const url of urls) {
     try {
       const response = await axios.get(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 AppleWebKit/537.36' },
-        timeout: 8000
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        },
+        timeout: 8000,
       });
 
+      // Skip if it's the "PAGE NOT FOUND" page
+      if (response.data.includes('PAGE NOT FOUND') || response.data.includes('404')) {
+        continue;
+      }
+
       const followers = extractFollowersFromText(response.data);
-      if (followers != null && followers > 0) {
+      if (followers != null && followers >= 0) {
         return res.json({ numFollowers: followers });
       }
     } catch (e) {
@@ -59,7 +77,7 @@ app.get('/getFollowers', async (req, res) => {
     }
   }
 
-  res.status(404).json({ error: 'Enter Correct username' });
+  return res.status(404).json({ error: 'Profile not found or private' });
 });
 
 // Serve UI
@@ -70,7 +88,6 @@ app.get('/', (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- ✅ FIXED: removed space in favicon URL -->
   <link rel="icon" type="image/jpeg" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSaSpbfxZ0vrnsU6pkYbQARlgbwiMZD3hC2g&s">
   <title>Medium Realtime Followers Tool</title>
   <style>
@@ -194,7 +211,7 @@ app.get('/', (req, res) => {
       const resultDiv = document.getElementById('result');
 
       if (!username || !/^[a-zA-Z0-9._-]+$/.test(username)) {
-        alert('Enter Correct username');
+        alert('Enter a valid Medium username (letters, numbers, . _ - only)');
         return;
       }
 
@@ -209,7 +226,7 @@ app.get('/', (req, res) => {
           resultDiv.className = 'result success';
           resultDiv.innerHTML = '<b>' + data.numFollowers.toLocaleString() + '</b>';
         } else {
-          alert(data.error || 'Profile not found');
+          alert(data.error || 'Profile not found or private');
           resultDiv.textContent = '';
         }
       } catch (error) {
@@ -230,16 +247,8 @@ app.get('/', (req, res) => {
 `);
 });
 
-// 👇 REQUIRED FOR VERCEL
-module.exports = app;
-
-// 👇 For local development
-if (require.main === module) {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`✅ Server running at http://localhost:${PORT}`);
-  });
-}
-
-
-
+// For Render deployment
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server running at http://localhost:${PORT}`);
+});
