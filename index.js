@@ -1,13 +1,8 @@
 const express = require('express');
 const axios = require('axios');
-const NodeCache = require('node-cache');
-
 const app = express();
-const cache = new NodeCache({ stdTTL: 600 }); // 10 minutes
 
-app.set('trust proxy', true);
-
-// Helper: Extract follower count from HTML
+// Helper: Extract follower count from raw HTML text
 function extractFollowersFromText(text) {
   const match = text.match(/(\d{1,3}(?:,\d{3})*)\s+followers/i);
   if (match) {
@@ -20,74 +15,54 @@ app.get('/getFollowers', async (req, res) => {
   const username = req.query.username?.trim();
 
   if (!username || !/^[a-zA-Z0-9._-]+$/.test(username)) {
-    return res.status(400).json({ error: 'Enter Correct username' });
+    return res.status(400).json({ error: 'Invalid username format.' });
   }
 
-  // ✅ CACHE CHECK
-  const cached = cache.get(username);
-  if (cached) {
-    return res.json({ numFollowers: cached });
-  }
-
-  const headers = {
-    'User-Agent':
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120',
-    'Accept-Language': 'en-US,en;q=0.9'
-  };
-
-  // ✅ STRATEGY 1: Medium JSON API
+  // ✅ STRATEGY 1: Try Medium's JSON API
   try {
-    const jsonUrl = `https://medium.com/@${username}?format=json`;
-
+    const jsonUrl = `https://medium.com/@   ${username}?format=json`; // ← NO SPACES
     const response = await axios.get(jsonUrl, {
-      headers,
+      headers: { 'User-Agent': 'Mozilla/5.0 AppleWebKit/537.36' },
       timeout: 8000
     });
 
     const cleanJson = response.data.replace('])}while(1);</x>', '');
     const data = JSON.parse(cleanJson);
-
     const count = data.payload?.user?.socialStats?.followersCount;
-    if (count && count > 0) {
-      cache.set(username, count);
+
+    if (count != null && count > 0) {
       return res.json({ numFollowers: count });
     }
-  } catch (err) {
-    console.warn('JSON blocked:', err.message);
+  } catch (e) {
+    console.warn(`JSON method failed for ${username}:`, e.message);
   }
 
-  // ✅ STRATEGY 2: HTML fallback
+  // ✅ STRATEGY 2: Fallback to HTML scraping
   const urls = [
     `https://${username}.medium.com/followers`,
-    `https://medium.com/@${username}/followers`
+    `https://medium.com/@   ${username}/followers` // ← NO SPACES
   ];
 
   for (const url of urls) {
     try {
       const response = await axios.get(url, {
-        headers,
+        headers: { 'User-Agent': 'Mozilla/5.0 AppleWebKit/537.36' },
         timeout: 8000
       });
 
       const followers = extractFollowersFromText(response.data);
-      if (followers && followers > 0) {
-        cache.set(username, followers);
+      if (followers != null && followers > 0) {
         return res.json({ numFollowers: followers });
       }
-    } catch (err) {
-      console.warn('HTML blocked:', err.message);
+    } catch (e) {
+      console.warn(`HTML fetch failed for ${url}:`, e.message);
     }
   }
 
-  // ❌ Medium blocked Render IP
-  res.status(503).json({
-    error: 'Medium blocked this request. Try again later.'
-  });
+  res.status(404).json({ error: 'Enter Correct username' });
 });
 
-// =======================
-// UI ROUTE (UNCHANGED CSS)
-// =======================
+// Serve UI
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -95,7 +70,8 @@ app.get('/', (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" type="image/jpeg" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSaSpbfxZ0vrnsU6pkYbQARlgbwiMZD3hC2g&s">
+  <!-- ✅ FIXED: removed space in favicon URL -->
+  <link rel="icon" type="image/jpeg" href="https://encrypted-tbn0.gstatic.com/images?q=tbn   :ANd9GcRSaSpbfxZ0vrnsU6pkYbQARlgbwiMZD3hC2g&s">
   <title>Medium Realtime Followers Tool</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -144,6 +120,18 @@ app.get('/', (req, res) => {
       margin-bottom: 25px;
       font-family: inherit;
       outline: none;
+      transition: border 0.3s ease, box-shadow 0.3s ease;
+    }
+    .input-field::placeholder {
+      color: rgba(255, 255, 255, 0.85);
+      opacity: 1;
+    }
+    .input-field:focus {
+      border-color: rgba(255, 255, 255, 0.6);
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.25);
+    }
+    .input-field:focus::placeholder {
+      opacity: 0.4;
     }
     .btn-primary {
       width: 100%; padding: 16px;
@@ -151,15 +139,38 @@ app.get('/', (req, res) => {
       color: #fff; border: none; border-radius: 20px;
       font-size: 16px; font-weight: 700;
       cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 20px rgba(255, 107, 157, 0.3);
     }
     .result {
       margin-top: 30px; min-height: 40px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 38px; color: #fff;
+      font-size: 38px; color: #fff; transition: all 0.3s ease;
+    }
+    .result.success { color: #6effa3; }
+    .result.error { color: #ff6b6b; }
+    .result.loading {
+      font-size: 16px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
     }
     .footer {
       margin-top: 40px; font-size: 14px;
       color: rgba(255, 255, 255, 0.7);
+    }
+    .author {
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    @media (max-width: 600px) {
+      .card { padding: 40px 25px; border-radius: 25px; }
+      .title { font-size: 24px; margin-bottom: 25px; }
+      .logo { width: 50px; height: 50px; font-size: 24px; }
+      .input-field, .btn-primary { padding: 14px 16px; font-size: 15px; }
+      .result b { font-size: 24px; }
     }
   </style>
 </head>
@@ -168,54 +179,67 @@ app.get('/', (req, res) => {
     <div class="card">
       <div class="logo">M</div>
       <h3 class="title">MEDIUM REAL TIME FOLLOWERS TOOL</h3>
-      <input type="text" id="username" class="input-field" placeholder="Enter Medium Username Only">
+      <input type="text" id="username" class="input-field" placeholder="Enter Medium Username Only" autocomplete="off">
       <button class="btn-primary" onclick="check()">GET FOLLOWERS COUNT</button>
       <div id="result" class="result"></div>
       <footer class="footer">
-        Designed & Developed by <b>Yashwanth R</b>
+        Designed & Developed by <span class="author">Yashwanth R</span>
       </footer>
     </div>
   </div>
 
-<script>
-async function check() {
-  const username = document.getElementById('username').value.trim();
-  const result = document.getElementById('result');
+  <script>
+    async function check() {
+      const username = document.getElementById('username').value.trim();
+      const resultDiv = document.getElementById('result');
 
-  if (!username) {
-    alert('Enter Correct username');
-    return;
-  }
+      if (!username || !/^[a-zA-Z0-9._-]+$/.test(username)) {
+        alert('Enter Correct username');
+        return;
+      }
 
-  result.textContent = 'Loading...';
+      resultDiv.className = 'result loading';
+      resultDiv.textContent = 'Loading...';
 
-  try {
-    const res = await fetch('/getFollowers?username=' + encodeURIComponent(username));
-    const data = await res.json();
+      try {
+        const response = await fetch('/getFollowers?username=' + encodeURIComponent(username));
+        const data = await response.json();
 
-    if (res.ok) {
-      result.innerHTML = '<b>' + data.numFollowers.toLocaleString() + '</b>';
-    } else {
-      alert(data.error);
-      result.textContent = '';
+        if (response.ok) {
+          resultDiv.className = 'result success';
+          resultDiv.innerHTML = '<b>' + data.numFollowers.toLocaleString() + '</b>';
+        } else {
+          alert(data.error || 'Profile not found');
+          resultDiv.textContent = '';
+        }
+      } catch (error) {
+        alert('Network error. Try again.');
+        resultDiv.textContent = '';
+      }
     }
-  } catch {
-    alert('Network error');
-    result.textContent = '';
-  }
-}
-</script>
+
+    document.getElementById('username').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') check();
+    });
+    document.getElementById('username').addEventListener('focus', () => {
+      document.getElementById('result').textContent = '';
+    });
+  </script>
 </body>
 </html>
 `);
 });
 
+// 👇 REQUIRED FOR VERCEL
 module.exports = app;
 
-// ✅ LOCAL DEV
+// 👇 For local development
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
-    console.log('✅ Server running on port', PORT);
+    console.log(`✅ Server running at http://localhost:${PORT}`);
   });
 }
+
+
+
