@@ -2,7 +2,9 @@ const express = require('express');
 const axios = require('axios');
 const app = express();
 
-// Helper: Extract follower count from raw HTML text
+app.set('trust proxy', true);
+
+// Helper: Extract follower count from raw HTML
 function extractFollowersFromText(text) {
   const match = text.match(/(\d{1,3}(?:,\d{3})*)\s+followers/i);
   if (match) {
@@ -18,44 +20,51 @@ app.get('/getFollowers', async (req, res) => {
     return res.status(400).json({ error: 'Invalid username format.' });
   }
 
-  // ✅ STRATEGY 1: Try Medium's JSON API
+  const headers = {
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120',
+    'Accept-Language': 'en-US,en;q=0.9'
+  };
+
+  // ✅ STRATEGY 1: Medium JSON API
   try {
-    const jsonUrl = `https://medium.com/@${username}?format=json`; // ← NO SPACES
+    const jsonUrl = `https://medium.com/@${username}?format=json`;
+
     const response = await axios.get(jsonUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 AppleWebKit/537.36' },
+      headers,
       timeout: 8000
     });
 
     const cleanJson = response.data.replace('])}while(1);</x>', '');
     const data = JSON.parse(cleanJson);
-    const count = data.payload?.user?.socialStats?.followersCount;
 
-    if (count != null && count > 0) {
+    const count = data.payload?.user?.socialStats?.followersCount;
+    if (count && count > 0) {
       return res.json({ numFollowers: count });
     }
-  } catch (e) {
-    console.warn(`JSON method failed for ${username}:`, e.message);
+  } catch (err) {
+    console.warn('JSON failed:', err.message);
   }
 
-  // ✅ STRATEGY 2: Fallback to HTML scraping
+  // ✅ STRATEGY 2: HTML fallback
   const urls = [
     `https://${username}.medium.com/followers`,
-    `https://medium.com/@${username}/followers` // ← NO SPACES
+    `https://medium.com/@${username}/followers`
   ];
 
   for (const url of urls) {
     try {
       const response = await axios.get(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 AppleWebKit/537.36' },
+        headers,
         timeout: 8000
       });
 
       const followers = extractFollowersFromText(response.data);
-      if (followers != null && followers > 0) {
+      if (followers && followers > 0) {
         return res.json({ numFollowers: followers });
       }
-    } catch (e) {
-      console.warn(`HTML fetch failed for ${url}:`, e.message);
+    } catch (err) {
+      console.warn('HTML failed:', err.message);
     }
   }
 
@@ -71,7 +80,7 @@ app.get('/', (req, res) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- ✅ FIXED: removed space in favicon URL -->
-  <link rel="icon" type="image/jpeg" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSaSpbfxZ0vrnsU6pkYbQARlgbwiMZD3hC2g&s">
+  <link rel="icon" type="image/jpeg" href="https://encrypted-tbn0.gstatic.com/images?q=tbn  :ANd9GcRSaSpbfxZ0vrnsU6pkYbQARlgbwiMZD3hC2g&s">
   <title>Medium Realtime Followers Tool</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -230,14 +239,13 @@ app.get('/', (req, res) => {
 `);
 });
 
-// 👇 REQUIRED FOR VERCEL
 module.exports = app;
 
-// 👇 For local development
+// ✅ LOCAL DEV
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
-    console.log(`✅ Server running at http://localhost:${PORT}`);
+    console.log('✅ Server running on port', PORT);
   });
 }
 
