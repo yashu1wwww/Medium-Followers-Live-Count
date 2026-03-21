@@ -1,6 +1,10 @@
 const express = require('express');
 const axios = require('axios');
+const cors = require('cors'); // ✅ Add CORS support
 const app = express();
+
+app.use(cors()); // ✅ Enable CORS for Vercel/frontend compatibility
+app.use(express.json());
 
 // Helper: Extract follower count from raw HTML text
 function extractFollowersFromText(text) {
@@ -18,40 +22,45 @@ app.get('/getFollowers', async (req, res) => {
     return res.status(400).json({ error: 'Invalid username format.' });
   }
 
-  // ✅ STRATEGY 1: Try Medium's JSON API
+  // ✅ STRATEGY 1: Try Medium's JSON API (FIXED URL - NO SPACES)
   try {
-    const jsonUrl = `https://medium.com/@   ${username}?format=json`; // ← NO SPACES
+    const jsonUrl = `https://medium.com/@${username}?format=json`; // ← FIXED
     const response = await axios.get(jsonUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 AppleWebKit/537.36' },
-      timeout: 8000
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+      },
+      timeout: 10000 // ✅ Increased timeout for Vercel
     });
 
     const cleanJson = response.data.replace('])}while(1);</x>', '');
     const data = JSON.parse(cleanJson);
     const count = data.payload?.user?.socialStats?.followersCount;
 
-    if (count != null && count > 0) {
+    if (count != null && count >= 0) { // ✅ Allow 0 followers
       return res.json({ numFollowers: count });
     }
   } catch (e) {
     console.warn(`JSON method failed for ${username}:`, e.message);
   }
 
-  // ✅ STRATEGY 2: Fallback to HTML scraping
+  // ✅ STRATEGY 2: Fallback to HTML scraping (FIXED URLs)
   const urls = [
     `https://${username}.medium.com/followers`,
-    `https://medium.com/@   ${username}/followers` // ← NO SPACES
+    `https://medium.com/@${username}/followers` // ← FIXED
   ];
 
   for (const url of urls) {
     try {
       const response = await axios.get(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 AppleWebKit/537.36' },
-        timeout: 8000
+        headers: { 
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        timeout: 10000
       });
 
       const followers = extractFollowersFromText(response.data);
-      if (followers != null && followers > 0) {
+      if (followers != null && followers >= 0) {
         return res.json({ numFollowers: followers });
       }
     } catch (e) {
@@ -70,8 +79,7 @@ app.get('/', (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- ✅ FIXED: removed space in favicon URL -->
-  <link rel="icon" type="image/jpeg" href="https://encrypted-tbn0.gstatic.com/images?q=tbn   :ANd9GcRSaSpbfxZ0vrnsU6pkYbQARlgbwiMZD3hC2g&s">
+  <link rel="icon" type="image/jpeg" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSaSpbfxZ0vrnsU6pkYbQARlgbwiMZD3hC2g&s">
   <title>Medium Realtime Followers Tool</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -202,7 +210,9 @@ app.get('/', (req, res) => {
       resultDiv.textContent = 'Loading...';
 
       try {
-        const response = await fetch('/getFollowers?username=' + encodeURIComponent(username));
+        // ✅ Use absolute URL for Vercel compatibility
+        const baseUrl = window.location.origin;
+        const response = await fetch(baseUrl + '/getFollowers?username=' + encodeURIComponent(username));
         const data = await response.json();
 
         if (response.ok) {
@@ -213,6 +223,7 @@ app.get('/', (req, res) => {
           resultDiv.textContent = '';
         }
       } catch (error) {
+        console.error('Fetch error:', error);
         alert('Network error. Try again.');
         resultDiv.textContent = '';
       }
@@ -230,16 +241,13 @@ app.get('/', (req, res) => {
 `);
 });
 
-// 👇 REQUIRED FOR VERCEL
+// ✅ REQUIRED FOR VERCEL SERVERLESS
 module.exports = app;
 
-// 👇 For local development
+// ✅ For local development only
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
     console.log(`✅ Server running at http://localhost:${PORT}`);
   });
 }
-
-
-
