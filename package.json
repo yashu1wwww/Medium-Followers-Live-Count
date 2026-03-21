@@ -1,19 +1,18 @@
 {
   "name": "medium-followers-tool",
   "version": "1.0.0",
-  "description": "Medium Realtime Followers Counter",
+  "description": "Medium real-time followers count tool",
   "main": "index.js",
+  "type": "commonjs",
   "scripts": {
     "start": "node index.js",
-    "build": "echo 'No build step needed'",
     "dev": "nodemon index.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "axios": "^1.6.0",
-    "cors": "^2.8.5"
+    "axios": "^1.6.8",
+    "express": "^4.19.2"
   },
   "engines": {
-    "node": "22.x"
+    "node": "18.x"
   }
 }
