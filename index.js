@@ -71,7 +71,7 @@ app.get('/', (req, res) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- ✅ FIXED: removed space in favicon URL -->
-  <link rel="icon" type="image/jpeg" href="https://encrypted-tbn0.gstatic.com/images?q=tbn   :ANd9GcRSaSpbfxZ0vrnsU6pkYbQARlgbwiMZD3hC2g&s">
+  <link rel="icon" type="image/jpeg" href="https://cdn-icons-png.flaticon.com/512/3670/3670098.png">
   <title>Medium Realtime Followers Tool</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
